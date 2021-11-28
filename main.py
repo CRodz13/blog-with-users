@@ -61,7 +61,7 @@ class Comment(db.Model):
     text = db.Column(db.Text, nullable=False)
     parent_post = relationship("BlogPost", back_populates="comments")
     comment_author = relationship("User", back_populates="comments")
-db.create_all()
+# db.create_all()
 
 
 def admin_only(f):
