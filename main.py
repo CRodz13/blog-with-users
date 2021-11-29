@@ -118,7 +118,7 @@ def register():
         new_user = User(
             email=request.form.get('email'),
             password=hash_and_salted_password,
-            name=request.form.get('name'),
+            name=request.form.get('name')
         )
         db.session.add(new_user)
         db.session.commit()
@@ -238,4 +238,4 @@ def delete_post(post_id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host = '0.0.0.0', port = 5000)
