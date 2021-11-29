@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash, abort
+from flask import Flask, render_template, redirect, url_for, flash, request, abort
 from flask_bootstrap import Bootstrap
 from flask_ckeditor import CKEditor
 from datetime import date
@@ -111,14 +111,14 @@ def register():
             return redirect(url_for('login'))
 
         hash_and_salted_password = generate_password_hash(
-            form.password.data,
+            request.form.get('password'),
             method='pbkdf2:sha256',
             salt_length=8
         )
         new_user = User(
-            email = request.form.get('email'),
-            password = hash_and_salted_password,
-            name = request.form.get('name'),
+            email=request.form.get('email'),
+            password=hash_and_salted_password,
+            name=request.form.get('name'),
         )
         db.session.add(new_user)
         db.session.commit()
@@ -238,4 +238,4 @@ def delete_post(post_id):
 
 
 if __name__ == "__main__":
-    app.run(host = '0.0.0.0', port = 5000)
+    app.run(debug=True)
