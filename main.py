@@ -111,14 +111,14 @@ def register():
             return redirect(url_for('login'))
 
         hash_and_salted_password = generate_password_hash(
-            request.form.get('password'),
+            form.password.data,
             method='pbkdf2:sha256',
             salt_length=8
         )
         new_user = User(
-            email=request.form.get('email'),
+            email=form.email.data,
             password=hash_and_salted_password,
-            name=request.form.get('name')
+            name=form.name.data
         )
         db.session.add(new_user)
         db.session.commit()
@@ -238,4 +238,4 @@ def delete_post(post_id):
 
 
 if __name__ == "__main__":
-    app.run(host = '0.0.0.0', port = 5000)
+    app.run(host='0.0.0.0', port=5000)
