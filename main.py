@@ -21,64 +21,84 @@ gravatar = Gravatar(app, size=100, rating='g', default='retro', force_default=Fa
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("POSTGRES_DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
+
+#CONFIGURE FLASK LOGIN MANAGER
 login_manager = LoginManager()
 login_manager.init_app(app)
 
 
+#LOGIN MANAGER FUNCTION TO RETURN THE CURRENT ACTIVE USER OBJECT
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-##CONFIGURE TABLE
+#CREATING A NEW WRAPPER FUNCTION/ DECORATOR FOR ADMIN ONLY
+def admin_only(f):
+    @wraps(f)
+    def decorated_func(*args, **kwargs):
+        if current_user.id != 1:
+            return abort(403)
+        return f(*args, **kwargs)
+    return decorated_func
+
+
+#USER TABLE
 class User(UserMixin, db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(100))
     name = db.Column(db.String(100))
-    posts = relationship("BlogPost", back_populates="author")
+
+    # Parent Relationship with Blogpost Table
+    posts = relationship("BlogPost", back_populates='author')
+
+    # Parent Relationship with Comment Table
     comments = relationship("Comment", back_populates="comment_author")
 
 
 class BlogPost(db.Model):
     __tablename__ = "blog_posts"
     id = db.Column(db.Integer, primary_key=True)
+
+    # Child Relationship with User Table
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    author = relationship('User', back_populates='posts')
+
+    # Parent Relationship with Comment Table
+    comments = relationship("Comment", back_populates="parent_post")
+
     title = db.Column(db.String(250), unique=True, nullable=False)
     subtitle = db.Column(db.String(250), nullable=False)
     date = db.Column(db.String(250), nullable=False)
     body = db.Column(db.Text, nullable=False)
     img_url = db.Column(db.String(250), nullable=False)
-    author = relationship("User", back_populates="posts")
-    author_id = db.Column(db.Integer, db.ForeignKey("users.id"))
-    comments = relationship("Comment", back_populates="parent_post")
+
 
 class Comment(db.Model):
     __tablename__ = "comments"
     id = db.Column(db.Integer, primary_key=True)
-    post_id = db.Column(db.Integer, db.ForeignKey("blog_posts.id"))
-    author_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     text = db.Column(db.Text, nullable=False)
-    parent_post = relationship("BlogPost", back_populates="comments")
+
+    # Child relationship with User table
+    author_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     comment_author = relationship("User", back_populates="comments")
-# db.create_all()
+
+    # Child relationship with BlogPost table
+    post_id = db.Column(db.Integer, db.ForeignKey("blog_posts.id"))
+    parent_post = relationship("BlogPost", back_populates="comments")
 
 
-def admin_only(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if current_user.id != 1:
-            return abort(403)
-        return f(*args, **kwargs)
-    return decorated_function
-
-
+# Home Page Route and Page
 @app.route('/')
 def get_all_posts():
     posts = BlogPost.query.all()
     return render_template("index.html", all_posts=posts, current_user=current_user)
 
 
+# Register Route and Page
 @app.route('/register', methods=["GET", "POST"])
 def register():
     form = RegisterForm()
@@ -96,9 +116,9 @@ def register():
             salt_length=8
         )
         new_user = User(
-            email=form.email.data,
-            name=form.name.data,
-            password=hash_and_salted_password,
+            email = request.form.get('email'),
+            password = hash_and_salted_password,
+            name = request.form.get('name'),
         )
         db.session.add(new_user)
         db.session.commit()
