@@ -152,7 +152,7 @@ def login():
 @app.route('/logout')
 def logout():
     logout_user()
-    return redirect(url_for('login'))
+    return redirect(url_for('get_all_posts'))
 
 
 @app.route("/post/<int:post_id>", methods=["GET", "POST"])
